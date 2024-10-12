@@ -171,13 +171,13 @@ function startGame() {
     lives = 9;
     gameSpeed = 1;
     gameTime = 0;
-    if (gameLoop) clearInterval(gameLoop);
-    gameLoop = setInterval(update, 1000 / 60);
+    if (gameLoop) cancelAnimationFrame(gameLoop);
+    gameLoop = requestAnimationFrame(update);
 }
 
 function endGame() {
     console.log('Game over');
-    clearInterval(gameLoop);
+    cancelAnimationFrame(gameLoop);
     canvas.style.display = 'none';
     gameOverScreen.style.display = 'block';
     finalScoreElement.textContent = score;
@@ -294,6 +294,8 @@ function update() {
 
     // Draw game speed
     ctx.fillText(`速度: ${gameSpeed.toFixed(2)}x`, 10, 80);
+
+    gameLoop = requestAnimationFrame(update);
 }
 
 function handleInput(x, y) {
@@ -310,7 +312,10 @@ canvas.addEventListener('mousemove', (e) => {
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const touch = e.touches[0];
-    handleInput(touch.clientX, touch.clientY);
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    handleInput(x, y);
 });
 
 startButton.addEventListener('click', startGame);
