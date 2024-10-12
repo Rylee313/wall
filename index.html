@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>猪猪撞南墙</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,7 +10,8 @@
     <div id="gameContainer">
         <div id="startScreen">
             <h1>猪猪撞南墙</h1>
-            <button id="startButton">开始游戏</button>
+            <p id="loadingMessage">加载中...</p>
+            <button id="startButton" disabled>加载中...</button>
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="gameOverScreen" style="display: none;">
