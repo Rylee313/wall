@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猪猪撞南墙</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="difficulty">
+        <button onclick="startGame(2)">Start Easy</button>
+        <button onclick="startGame(4)">Start Medium</button>
+        <button onclick="startGame(6)">Start Hard</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameOver">
+        <h1>Game Over</h1>
+        <p id="finalScore"></p>
+        <button id="restart" onclick="restartGame()">Restart</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
