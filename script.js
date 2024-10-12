@@ -5,6 +5,7 @@ const gameOverScreen = document.getElementById('gameOverScreen');
 const startButton = document.getElementById('startButton');
 const restartButton = document.getElementById('restartButton');
 const finalScoreElement = document.getElementById('finalScore');
+const loadingMessage = document.getElementById('loadingMessage');
 
 let gameLoop;
 let piggy;
@@ -18,35 +19,44 @@ let gameSpeed = 1;
 let gameTime = 0;
 
 const piggyImage = new Image();
-piggyImage.src = 'https://i.imgur.com/C0QUUdq.png';
-
 const lifeImage = new Image();
-lifeImage.src = 'https://i.imgur.com/C9A5LoF.png';
-
 const staticObstacleImage = new Image();
-staticObstacleImage.src = 'https://i.imgur.com/339wcBE.png';
-
 const movingObstacleImage = new Image();
-movingObstacleImage.src = 'https://i.imgur.com/UaSzf5z.png';
-
 const giantObstacleImage = new Image();
-giantObstacleImage.src = 'https://i.imgur.com/339wcBE.png'; // Using the same image, but it will be rendered larger
+
+const images = [
+    { img: piggyImage, src: 'https://i.imgur.com/C0QUUdq.png', name: 'Piggy' },
+    { img: lifeImage, src: 'https://i.imgur.com/C9A5LoF.png', name: 'Life' },
+    { img: staticObstacleImage, src: 'https://i.imgur.com/339wcBE.png', name: 'Static Obstacle' },
+    { img: movingObstacleImage, src: 'https://i.imgur.com/UaSzf5z.png', name: 'Moving Obstacle' },
+    { img: giantObstacleImage, src: 'https://i.imgur.com/339wcBE.png', name: 'Giant Obstacle' }
+];
 
 let imagesLoaded = 0;
-const totalImages = 5;
+const totalImages = images.length;
 
 function imageLoaded() {
     imagesLoaded++;
+    loadingMessage.textContent = `加载中... (${imagesLoaded}/${totalImages})`;
+    console.log(`Image loaded: ${imagesLoaded}/${totalImages}`);
     if (imagesLoaded === totalImages) {
         console.log('All images loaded');
         startButton.disabled = false;
         startButton.textContent = '开始游戏';
+        loadingMessage.style.display = 'none';
     }
 }
 
-[piggyImage, lifeImage, staticObstacleImage, movingObstacleImage, giantObstacleImage].forEach(img => {
-    img.onload = imageLoaded;
-    img.onerror = () => console.error(`Failed to load image: ${img.src}`);
+images.forEach(({ img, src, name }) => {
+    img.onload = () => {
+        console.log(`${name} image loaded successfully`);
+        imageLoaded();
+    };
+    img.onerror = () => {
+        console.error(`Failed to load ${name} image: ${src}`);
+        imageLoaded(); // Still increment the counter to avoid getting stuck
+    };
+    img.src = src;
 });
 
 function resizeCanvas() {
@@ -313,3 +323,25 @@ startButton.disabled = true;
 startButton.textContent = '加载中...';
 
 console.log('Script loaded');
+
+function checkImagesLoaded() {
+    console.log(`Checking images: ${imagesLoaded}/${totalImages} loaded`);
+    images.forEach(({ img, name }) => {
+        console.log(`${name} image complete: ${img.complete}`);
+    });
+}
+
+window.addEventListener('load', () => {
+    console.log('Window loaded');
+    checkImagesLoaded();
+});
+
+setTimeout(() => {
+    if (imagesLoaded < totalImages) {
+        console.log('Images not loaded after 5 seconds, forcing completion');
+        checkImagesLoaded();
+        while (imagesLoaded < totalImages) {
+            imageLoaded();
+        }
+    }
+}, 5000);
