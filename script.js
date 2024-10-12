@@ -29,8 +29,10 @@ let animationFrameId;
 let difficultyMultiplier = 1;
 
 window.onload = () => {
+    console.log('Window loaded');
     resizeCanvas();
     pigImage.onload = () => {
+        console.log('Pig image loaded');
         document.getElementById('difficulty').style.display = 'block';
     };
 };
@@ -38,11 +40,13 @@ window.onload = () => {
 window.addEventListener('resize', resizeCanvas);
 
 function resizeCanvas() {
+    console.log('Resizing canvas');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 
 function startGame(speed) {
+    console.log('Starting game with speed:', speed);
     gameSpeed = speed;
     document.getElementById('difficulty').style.display = 'none';
     canvas.style.display = 'block';
@@ -54,6 +58,7 @@ function startGame(speed) {
 }
 
 function createObstacle() {
+    console.log('Creating obstacle');
     const numBlocks = Math.floor(Math.random() * 5) + 3;
     const blockHeight = 20;
     const gap = Math.random() * (canvas.height - 200) + 50;
@@ -69,6 +74,7 @@ function createObstacle() {
 }
 
 function createMovingObstacle() {
+    console.log('Creating moving obstacle');
     const height = 50;
     movingObstacles.push({
         x: canvas.width,
@@ -80,6 +86,7 @@ function createMovingObstacle() {
 }
 
 function createBomb() {
+    console.log('Creating bomb');
     const size = 30;
     bombs.push({
         x: canvas.width,
@@ -170,6 +177,7 @@ function drawScore() {
 }
 
 function loop() {
+    console.log('Game loop running');
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawPlayer();
     drawObstacles();
@@ -198,12 +206,14 @@ function loop() {
 }
 
 function endGame() {
+    console.log('Game over');
     cancelAnimationFrame(animationFrameId);
     document.getElementById('gameOver').style.display = 'block';
     document.getElementById('finalScore').innerText = '最终得分: ' + score;
 }
 
 function restartGame() {
+    console.log('Restarting game');
     score = 0;
     lives = 9;
     combo = 1;
@@ -211,7 +221,6 @@ function restartGame() {
     movingObstacles = [];
     bombs = [];
     document.getElementById('difficulty').style.display = 'block';
-    document.getElementById('restart').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('finalScore').innerText = '';
     canvas.style.display = 'none';
@@ -230,3 +239,5 @@ canvas.addEventListener('touchmove', (e) => {
     player.y = touch.clientY - rect.top - player.height / 2;
     e.preventDefault();
 });
+
+console.log('Script loaded');
