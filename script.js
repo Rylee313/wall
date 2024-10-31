@@ -7,9 +7,7 @@ const restartButton = document.getElementById('restartButton');
 const finalScoreElement = document.getElementById('finalScore');
 const loadingMessage = document.getElementById('loadingMessage');
 
-// 游戏核心变量
 let gameLoop;
-let lastTime = 0;
 let piggy;
 let walls = [];
 let staticObstacles = [];
@@ -19,223 +17,291 @@ let score = 0;
 let lives = 9;
 let gameSpeed = 1;
 let gameTime = 0;
-let isGamePaused = false;
 
-// 游戏配置
-const GAME_CONFIG = {
-    PIGGY_SIZE: 50,
-    WALL_WIDTH: 20,
-    STATIC_OBSTACLE_SIZE: 40,
-    MOVING_OBSTACLE_SIZE: 40,
-    GIANT_OBSTACLE_SIZE: 120,
-    INVULNERABLE_TIME: 1000,
-    SCORE_INCREMENT: 100,
-    SPEED_INCREMENT: 0.0001,
-    SPAWN_RATES: {
-        WALL: 0.03,
-        STATIC: 0.02,
-        MOVING: 0.01,
-        GIANT: 0.002
-    }
-};
+const piggyImage = new Image();
+const lifeImage = new Image();
+const staticObstacleImage = new Image();
+const movingObstacleImage = new Image();
+const giantObstacleImage = new Image();
 
-// 图片资源管理
-const IMAGES = {
-    piggy: { src: 'https://i.imgur.com/C0QUUdq.png' },
-    life: { src: 'https://i.imgur.com/C9A5LoF.png' },
-    staticObstacle: { src: 'https://i.imgur.com/339wcBE.png' },
-    movingObstacle: { src: 'https://i.imgur.com/UaSzf5z.png' },
-    giantObstacle: { src: 'https://i.imgur.com/339wcBE.png' }
-};
+const images = [
+    { img: piggyImage, src: 'https://i.imgur.com/C0QUUdq.png', name: 'Piggy' },
+    { img: lifeImage, src: 'https://i.imgur.com/C9A5LoF.png', name: 'Life' },
+    { img: staticObstacleImage, src: 'https://i.imgur.com/339wcBE.png', name: 'Static Obstacle' },
+    { img: movingObstacleImage, src: 'https://i.imgur.com/UaSzf5z.png', name: 'Moving Obstacle' },
+    { img: giantObstacleImage, src: 'https://i.imgur.com/339wcBE.png', name: 'Giant Obstacle' }
+];
 
-// 加载图片
-const loadedImages = {};
 let imagesLoaded = 0;
-const totalImages = Object.keys(IMAGES).length;
+const totalImages = images.length;
 
-function loadImages() {
-    Object.entries(IMAGES).forEach(([key, value]) => {
-        const img = new Image();
-        img.onload = () => {
-            imagesLoaded++;
-            updateLoadingProgress();
-        };
-        img.onerror = () => {
-            console.error(`Failed to load image: ${value.src}`);
-            imagesLoaded++;
-            updateLoadingProgress();
-        };
-        img.src = value.src;
-        loadedImages[key] = img;
-    });
-}
-
-function updateLoadingProgress() {
+function imageLoaded() {
+    imagesLoaded++;
     loadingMessage.textContent = `加载中... (${imagesLoaded}/${totalImages})`;
+    console.log(`Image loaded: ${imagesLoaded}/${totalImages}`);
     if (imagesLoaded === totalImages) {
+        console.log('All images loaded');
         startButton.disabled = false;
         startButton.textContent = '开始游戏';
         loadingMessage.style.display = 'none';
     }
 }
 
-// 游戏对象类
-class GameObject {
-    constructor(x, y, width, height, speed = 0) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.speed = speed;
-    }
+images.forEach(({ img, src, name }) => {
+    img.onload = () => {
+        console.log(`${name} image loaded successfully`);
+        imageLoaded();
+    };
+    img.onerror = () => {
+        console.error(`Failed to load ${name} image: ${src}`);
+        imageLoaded(); // Still increment the counter to avoid getting stuck
+    };
+    img.src = src;
+});
 
-    draw(image) {
-        if (image) {
-            ctx.drawImage(image, this.x, this.y, this.width, this.height);
-        }
-    }
-
-    update(deltaTime) {
-        // 基础更新逻辑
-    }
-
-    isOffscreen() {
-        return this.x + this.width < 0;
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (piggy) {
+        piggy.x = Math.min(piggy.x, canvas.width - piggy.width);
+        piggy.y = Math.min(piggy.y, canvas.height - piggy.height);
     }
 }
 
-class Piggy extends GameObject {
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Piggy {
     constructor() {
-        super(
-            50,
-            canvas.height / 2 - GAME_CONFIG.PIGGY_SIZE / 2,
-            GAME_CONFIG.PIGGY_SIZE,
-            GAME_CONFIG.PIGGY_SIZE
-        );
-        this.isInvulnerable = false;
-        this.targetX = this.x;
-        this.targetY = this.y;
+        this.width = 50;
+        this.height = 50;
+        this.x = 50;
+        this.y = canvas.height / 2 - this.height / 2;
     }
 
     draw() {
-        if (this.isInvulnerable) {
-            ctx.globalAlpha = 0.5;
+        ctx.drawImage(piggyImage, this.x, this.y, this.width, this.height);
+    }
+}
+
+class Wall {
+    constructor() {
+        this.width = 20;
+        this.height = Math.random() * (canvas.height - 200) + 100;
+        this.x = canvas.width;
+        this.y = Math.random() > 0.5 ? 0 : canvas.height - this.height;
+    }
+
+    draw() {
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+
+    update() {
+        this.x -= 3 * gameSpeed;
+    }
+}
+
+class StaticObstacle {
+    constructor() {
+        this.width = 40;
+        this.height = 40;
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height - this.height);
+    }
+
+    draw() {
+        ctx.drawImage(staticObstacleImage, this.x, this.y, this.width, this.height);
+    }
+
+    update() {
+        this.x -= 3 * gameSpeed;
+    }
+}
+
+class MovingObstacle {
+    constructor() {
+        this.width = 40;
+        this.height = 40;
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height - this.height);
+        this.speedY = (Math.random() - 0.5) * 5 * gameSpeed;
+    }
+
+    draw() {
+        ctx.drawImage(movingObstacleImage, this.x, this.y, this.width, this.height);
+    }
+
+    update() {
+        this.x -= 4 * gameSpeed;
+        this.y += this.speedY;
+        if (this.y <= 0 || this.y + this.height >= canvas.height) {
+            this.speedY = -this.speedY;
         }
-        super.draw(loadedImages.piggy);
-        ctx.globalAlpha = 1.0;
-    }
-
-    moveTo(targetX, targetY) {
-        this.targetX = targetX;
-        this.targetY = targetY;
-    }
-
-    update(deltaTime) {
-        const lerp = 0.1;
-        this.x += (this.targetX - this.x) * lerp;
-        this.y += (this.targetY - this.y) * lerp;
-
-        // 确保piggy不会超出画布边界
-        this.x = Math.max(0, Math.min(this.x, canvas.width - this.width));
-        this.y = Math.max(0, Math.min(this.y, canvas.height - this.height));
     }
 }
 
-// 游戏主循环
-function gameLoop(timestamp) {
-    if (isGamePaused) return;
+class GiantObstacle {
+    constructor() {
+        this.width = 120;
+        this.height = 120;
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height - this.height);
+    }
 
-    const deltaTime = timestamp - lastTime;
-    lastTime = timestamp;
+    draw() {
+        ctx.drawImage(giantObstacleImage, this.x, this.y, this.width, this.height);
+    }
 
-    updateGame(deltaTime);
-    drawGame();
-
-    requestAnimationFrame(gameLoop);
-}
-
-function updateGame(deltaTime) {
-    gameTime += deltaTime;
-    gameSpeed += GAME_CONFIG.SPEED_INCREMENT * deltaTime;
-
-    // 更新所有游戏对象
-    piggy.update(deltaTime);
-    updateObstacles(deltaTime);
-    checkCollisions();
-    spawnObstacles();
-}
-
-function checkCollisions() {
-    const allObstacles = [...walls, ...staticObstacles, ...movingObstacles, ...giantObstacles];
-    
-    for (const obstacle of allObstacles) {
-        if (detectCollision(piggy, obstacle)) {
-            handleCollision(obstacle);
-        }
+    update() {
+        this.x -= 2 * gameSpeed;
     }
 }
 
-function detectCollision(obj1, obj2) {
-    const tolerance = 5;
-    return (
-        obj1.x + tolerance < obj2.x + obj2.width &&
-        obj1.x + obj1.width - tolerance > obj2.x &&
-        obj1.y + tolerance < obj2.y + obj2.height &&
-        obj1.y + obj1.height - tolerance > obj2.y
-    );
+function startGame() {
+    console.log('Game started');
+    startScreen.style.display = 'none';
+    canvas.style.display = 'block';
+    piggy = new Piggy();
+    walls = [];
+    staticObstacles = [];
+    movingObstacles = [];
+    giantObstacles = [];
+    score = 0;
+    lives = 9;
+    gameSpeed = 1;
+    gameTime = 0;
+    if (gameLoop) cancelAnimationFrame(gameLoop);
+    gameLoop = requestAnimationFrame(update);
 }
 
-function handleCollision(obstacle) {
-    if (piggy.isInvulnerable) return;
-
-    if (obstacle instanceof Wall) {
-        score += GAME_CONFIG.SCORE_INCREMENT;
-    } else {
-        lives--;
-        if (lives <= 0) {
-            endGame();
-            return;
-        }
-        piggy.isInvulnerable = true;
-        setTimeout(() => {
-            piggy.isInvulnerable = false;
-        }, GAME_CONFIG.INVULNERABLE_TIME);
-    }
+function endGame() {
+    console.log('Game over');
+    cancelAnimationFrame(gameLoop);
+    canvas.style.display = 'none';
+    gameOverScreen.style.display = 'block';
+    finalScoreElement.textContent = score;
 }
 
-function drawGame() {
+function checkCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.width &&
+           rect1.x + rect1.width > rect2.x &&
+           rect1.y < rect2.y + rect2.height &&
+           rect1.y + rect1.height > rect2.y;
+}
+
+function update() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // 绘制所有游戏对象
+    gameTime++;
+    if (gameTime % 300 === 0) { // Increase difficulty every 5 seconds
+        gameSpeed += 0.2;
+        console.log(`Game speed increased to ${gameSpeed.toFixed(2)}`);
+    }
+
     piggy.draw();
-    walls.forEach(wall => wall.draw());
-    staticObstacles.forEach(obstacle => obstacle.draw());
-    movingObstacles.forEach(obstacle => obstacle.draw());
-    giantObstacles.forEach(obstacle => obstacle.draw());
 
-    // 绘制UI
-    drawUI();
-}
+    if (Math.random() < 0.03 * gameSpeed) {
+        walls.push(new Wall());
+    }
 
-function drawUI() {
+    if (Math.random() < 0.02 * gameSpeed) {
+        staticObstacles.push(new StaticObstacle());
+    }
+
+    if (Math.random() < 0.01 * gameSpeed) {
+        movingObstacles.push(new MovingObstacle());
+    }
+
+    if (Math.random() < 0.002 * gameSpeed) {
+        giantObstacles.push(new GiantObstacle());
+    }
+
+    walls.forEach((wall, index) => {
+        wall.update();
+        wall.draw();
+
+        if (wall.x + wall.width < 0) {
+            walls.splice(index, 1);
+        }
+
+        if (checkCollision(piggy, wall)) {
+            score += 100;
+            walls.splice(index, 1);
+        }
+    });
+
+    staticObstacles.forEach((obstacle, index) => {
+        obstacle.update();
+        obstacle.draw();
+
+        if (obstacle.x + obstacle.width < 0) {
+            staticObstacles.splice(index, 1);
+        }
+
+        if (checkCollision(piggy, obstacle)) {
+            lives--;
+            staticObstacles.splice(index, 1);
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+    });
+
+    movingObstacles.forEach((obstacle, index) => {
+        obstacle.update();
+        obstacle.draw();
+
+        if (obstacle.x + obstacle.width < 0) {
+            movingObstacles.splice(index, 1);
+        }
+
+        if (checkCollision(piggy, obstacle)) {
+            lives--;
+            movingObstacles.splice(index, 1);
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+    });
+
+    giantObstacles.forEach((obstacle, index) => {
+        obstacle.update();
+        obstacle.draw();
+
+        if (obstacle.x + obstacle.width < 0) {
+            giantObstacles.splice(index, 1);
+        }
+
+        if (checkCollision(piggy, obstacle)) {
+            lives -= 2; // Giant obstacles cause more damage
+            giantObstacles.splice(index, 1);
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+    });
+
+    // Draw score
     ctx.fillStyle = 'black';
     ctx.font = '20px Arial';
     ctx.fillText(`得分: ${score}`, 10, 30);
+
+    // Draw lives
+    for (let i = 0; i < lives; i++) {
+        ctx.drawImage(lifeImage, 10 + i * 30, 40, 25, 25);
+    }
+
+    // Draw game speed
     ctx.fillText(`速度: ${gameSpeed.toFixed(2)}x`, 10, 80);
 
-    // 绘制生命值
-    for (let i = 0; i < lives; i++) {
-        ctx.drawImage(loadedImages.life, 10 + i * 30, 40, 25, 25);
-    }
+    gameLoop = requestAnimationFrame(update);
 }
 
-// 事件处理
 function handleInput(x, y) {
     if (piggy) {
-        piggy.moveTo(
-            x - piggy.width / 2,
-            y - piggy.height / 2
-        );
+        piggy.x = Math.max(0, Math.min(x - piggy.width / 2, canvas.width - piggy.width));
+        piggy.y = Math.max(0, Math.min(y - piggy.height / 2, canvas.height - piggy.height));
     }
 }
 
@@ -247,53 +313,40 @@ canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    handleInput(
-        touch.clientX - rect.left,
-        touch.clientY - rect.top
-    );
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    handleInput(x, y);
 });
 
-// 游戏控制
-function startGame() {
-    console.log('Game started');
-    resetGame();
-    startScreen.style.display = 'none';
-    canvas.style.display = 'block';
-    lastTime = performance.now();
-    gameLoop(lastTime);
-}
-
-function endGame() {
-    console.log('Game over');
-    isGamePaused = true;
-    canvas.style.display = 'none';
-    gameOverScreen.style.display = 'block';
-    finalScoreElement.textContent = score;
-}
-
-function resetGame() {
-    piggy = new Piggy();
-    walls = [];
-    staticObstacles = [];
-    movingObstacles = [];
-    giantObstacles = [];
-    score = 0;
-    lives = 9;
-    gameSpeed = 1;
-    gameTime = 0;
-    isGamePaused = false;
-}
-
-// 初始化
-function init() {
-    loadImages();
-    resizeCanvas();
-    startButton.disabled = true;
-    startButton.textContent = '加载中...';
-}
-
-window.addEventListener('resize', resizeCanvas);
 startButton.addEventListener('click', startGame);
-restartButton.addEventListener('click', startGame);
+restartButton.addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    startGame();
+});
 
-init();
+startButton.disabled = true;
+startButton.textContent = '加载中...';
+
+console.log('Script loaded');
+
+function checkImagesLoaded() {
+    console.log(`Checking images: ${imagesLoaded}/${totalImages} loaded`);
+    images.forEach(({ img, name }) => {
+        console.log(`${name} image complete: ${img.complete}`);
+    });
+}
+
+window.addEventListener('load', () => {
+    console.log('Window loaded');
+    checkImagesLoaded();
+});
+
+setTimeout(() => {
+    if (imagesLoaded < totalImages) {
+        console.log('Images not loaded after 5 seconds, forcing completion');
+        checkImagesLoaded();
+        while (imagesLoaded < totalImages) {
+            imageLoaded();
+        }
+    }
+}, 5000);
